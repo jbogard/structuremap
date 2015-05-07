@@ -51,16 +51,21 @@ namespace StructureMap
             {
                 _root = this;
                 _profiles = new Profiles(_pluginGraph, this);
+                ContainerCache = singletons;
             }
             else
             {
                 _root = root.Root();
                 _profiles = root.Profiles;
+                ContainerCache = new ContainerSpecificObjectCache();
             }
 
             _singletons = singletons;
             _transients = transients;
         }
+
+
+        public IObjectCache ContainerCache { get; private set; }
 
         public IPipelineGraph Root()
         {
@@ -109,7 +114,10 @@ namespace StructureMap
 
         public Policies Policies
         {
-            get { return _pluginGraph.Root.Policies; }
+            get
+            {
+                return _pluginGraph.Root.Policies;
+            }
         }
 
         public void Dispose()
@@ -132,12 +140,11 @@ namespace StructureMap
 
         public IPipelineGraph ToNestedGraph()
         {
-            var nestedPluginGraph = new PluginGraph(Profile + " - Nested");
-            nestedPluginGraph.Parent = _pluginGraph;
+            var nestedPluginGraph = new PluginGraph(Profile + " - Nested") {Parent = _pluginGraph};
 
             var instances = new ComplexInstanceGraph(this, nestedPluginGraph, ContainerRole.Nested);
             return new PipelineGraph(nestedPluginGraph, instances, this, _singletons,
-                new NestedContainerTransientObjectCache());
+                new ContainerSpecificObjectCache());
         }
 
         public void Configure(Action<ConfigurationExpression> configure)
